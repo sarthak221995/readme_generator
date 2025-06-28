@@ -18,10 +18,9 @@ COPY . .
 
 # Set environment variables (optional)
 ENV PYTHONUNBUFFERED=1
-ENV OPENAI_API_KEY=replace_with_your_openai_api_key
 
 # Expose Flask default port
 EXPOSE 5000
 
 # Default command to run the Flask app with Gunicorn
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
