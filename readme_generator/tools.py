@@ -1,5 +1,7 @@
 import requests
 import json
+import os
+import logging
 from typing import Dict, Any, List
 from crewai.tools import BaseTool
 
@@ -8,13 +10,20 @@ class GitHubRepoTool(BaseTool):
     description: str = "Fetches repository information, file structure, and content from GitHub"
     
     def _run(self, repo_url: str) -> str:
-        """Analyze a GitHub repository and extract relevant information"""
+        """Analyze a GitHub repository and extract relevant information
+        
+        Args:
+            repo_url (str): The GitHub repository URL.
+        
+        Returns:
+            str: JSON string with analysis or error message.
+        """
         try:
+            logging.info(f"Analyzing repository: {repo_url}")
             # Extract owner and repo name from URL
             parts = repo_url.replace('https://github.com/', '').strip('/').split('/')
             if len(parts) < 2:
                 return "Invalid GitHub URL format. Expected: https://github.com/owner/repo"
-            
             owner, repo = parts[0], parts[1]
             
             # GitHub API endpoints
@@ -28,24 +37,31 @@ class GitHubRepoTool(BaseTool):
                 headers["Authorization"] = f"token {github_token}"
             
             # Get repository information
-            repo_response = requests.get(repo_api, headers=headers)
-            if repo_response.status_code == 404:
-                return f"Repository not found: {owner}/{repo}"
-            elif repo_response.status_code != 200:
-                return f"Failed to fetch repository information: {repo_response.status_code}"
+            try:
+                repo_response = requests.get(repo_api, headers=headers)
+                if repo_response.status_code == 404:
+                    return f"Repository not found: {owner}/{repo}"
+                elif repo_response.status_code == 403:
+                    return "GitHub API rate limit exceeded or forbidden."
+                elif repo_response.status_code != 200:
+                    return f"Failed to fetch repository information: {repo_response.status_code}"
+                repo_data = repo_response.json()
+            except requests.RequestException as e:
+                return f"Network error fetching repo: {str(e)}"
             
-            repo_data = repo_response.json()
-            
-            # Get repository contents
-            contents_response = requests.get(contents_api, headers=headers)
-            contents_data = contents_response.json() if contents_response.status_code == 200 else []
+            # Get repository contents (top-level only)
+            try:
+                contents_response = requests.get(contents_api, headers=headers)
+                contents_data = contents_response.json() if contents_response.status_code == 200 else []
+            except requests.RequestException as e:
+                contents_data = []
             
             # Get main files content
-            important_files = [
-                'package.json', 'requirements.txt', 'setup.py', 'pyproject.toml',
-                'Cargo.toml', 'go.mod', 'pom.xml', 'build.gradle', 'Gemfile',
-                'composer.json', 'Dockerfile', 'docker-compose.yml', '.env.example'
-            ]
+            # important_files = [
+            #     'package.json', 'requirements.txt', 'setup.py', 'pyproject.toml',
+            #     'Cargo.toml', 'go.mod', 'pom.xml', 'build.gradle', 'Gemfile',
+            #     'composer.json', 'Dockerfile', 'docker-compose.yml', '.env.example'
+            # ]
             
             file_contents = {}
             code_files = []
@@ -55,17 +71,17 @@ class GitHubRepoTool(BaseTool):
                     filename = item['name']
                     
                     # Get important config files
-                    if filename.lower() in [f.lower() for f in important_files]:
-                        if item['size'] < 50000:  # Limit file size
-                            try:
-                                file_response = requests.get(item['download_url'], headers=headers)
-                                if file_response.status_code == 200:
-                                    file_contents[filename] = file_response.text[:2000]
-                            except Exception:
-                                continue
+                    # if filename.lower() in [f.lower() for f in important_files]:
+                    if item['size'] < 50000:  # Limit file size
+                        try:
+                            file_response = requests.get(item['download_url'], headers=headers)
+                            if file_response.status_code == 200:
+                                file_contents[filename] = file_response.text[:2000]
+                        except requests.RequestException:
+                            continue
                     
                     # Collect code files for analysis
-                    elif any(filename.endswith(ext) for ext in ['.py', '.js', '.ts', '.go', '.rs', '.java', '.cpp', '.c', '.rb', '.php']):
+                    if any(filename.endswith(ext) for ext in ['.py', '.js', '.ts', '.go', '.rs', '.java', '.cpp', '.c', '.rb', '.php','.md']):
                         if item['size'] < 10000:  # Smaller limit for code files
                             code_files.append(filename)
             
@@ -118,4 +134,5 @@ class GitHubRepoTool(BaseTool):
             return json.dumps(analysis, indent=2)
             
         except Exception as e:
+            logging.error(f"Error analyzing repository: {str(e)}")
             return f"Error analyzing repository: {str(e)}"

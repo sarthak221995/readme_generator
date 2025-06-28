@@ -22,7 +22,7 @@ def cli():
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
 @click.option('--no-badges', is_flag=True, help='Disable badges in README')
 @click.option('--no-toc', is_flag=True, help='Disable table of contents')
-def generate(repo_url, output, model, verbose, no_badges, no_toc):
+def generate(repo_url, model, verbose, no_badges, no_toc):
     """Generate a README for a GitHub repository"""
     
     # Validate repo URL
@@ -72,17 +72,16 @@ def generate(repo_url, output, model, verbose, no_badges, no_toc):
         # Success message
         console.print(Panel(
             f"✅ README generated successfully!\n\n"
-            f"📝 Saved to: {output}\n"
             f"📊 Length: {len(result)} characters\n"
             f"🔗 Repository: {repo_url}",
             title="🎉 Success",
             border_style="green"
         ))
         
-        # Show preview
-        if click.confirm("Would you like to see a preview?"):
-            preview = result[:500] + "..." if len(result) > 500 else result
-            console.print(Panel(preview, title="📖 Preview", border_style="blue"))
+        # # Show preview
+        # if click.confirm("Would you like to see a preview?"):
+        #     preview = result[:500] + "..." if len(result) > 500 else result
+        console.print(Panel(result, title="📖 Preview", border_style="blue"))
     
     except Exception as e:
         console.print(f"❌ Error: {str(e)}", style="red")
