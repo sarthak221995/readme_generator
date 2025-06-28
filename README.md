@@ -83,7 +83,7 @@ It is the perfect solution for individuals or teams seeking to quickly bootstrap
 - **CLI:**
   - One-command README generation straight to your console or a file
 
-_See [Demo Video](https://github.com/sarthak221995/readme_generator#demo) (TODO: Add your demo link)_
+_See [Demo Video](https://readme-generator-916940205758.europe-west1.run.app/)
 
 ---
 
@@ -376,7 +376,7 @@ You are free to use, modify, and distribute this software under the terms of the
 ## Contact
 
 - GitHub: [@sarthak221995](https://github.com/sarthak221995)
-- Email: sarthak.j95@gmail.com
+- Email: sarthak221995@gmail.com
 - Project Discussions: [GitHub Discussions](https://github.com/sarthak221995/readme_generator/discussions)
 
 ---
